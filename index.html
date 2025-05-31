@@ -128,6 +128,7 @@
 
 <div id="globeViz"></div>
 
+<!-- Butonat lart -->
 <button id="saleBtn" class="top-button">Sale</button>
 <button id="searchToggle" class="top-button">Search</button>
 <button id="rentBtn" class="top-button">Rent</button>
@@ -146,14 +147,14 @@
   <button onclick="applyFilters()">Filtro</button>
 </div>
 
-<!-- Paneli i login -->
+<!-- Paneli i login dhe admin -->
+<button id="adminToggle">Admin</button>
+
 <div id="loginPanel">
-  <input type="password" id="adminPass" placeholder="Fjalëkalimi admin">
+  <input type="password" id="admin-password" placeholder="Fjalëkalimi admin">
   <button onclick="loginAdmin()">Hyr</button>
 </div>
 
-<!-- Paneli admin -->
-<button id="adminToggle">Admin</button>
 <div id="adminPanel">
   <h4>Shto Pronë</h4>
   <input type="text" id="new-category" placeholder="Kategoria">
@@ -175,30 +176,30 @@
   <button class="orbit-button" onclick="filterByCategory('Parcelë')">Parcelë</button>
 </div>
 
+<!-- Scriptet -->
 <script src="https://unpkg.com/three"></script>
 <script src="https://unpkg.com/globe.gl"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
   const SUPABASE_URL = 'https://crdwgevvwuwpmhyyqust.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyZHdnZXZ2d3V3cG1oeXlxdXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NDkxMDEsImV4cCI6MjA2NDIyNTEwMX0.GOUevDqJfPkdtyaDajJ2LwOqEBBzDeHbbvot7TB3GpM';
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const globe = Globe()(document.getElementById('globeViz'))
     .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
     .backgroundColor('#000')
     .pointOfView({ lat: 20, lng: 0, altitude: 2 });
 
-  let allProperties = [];
-  let isAdmin = false;
+  let propertyData = [];
 
-  async function fetchProperties() {
+  async function loadProperties() {
     const { data, error } = await supabase.from('properties').select('*');
     if (error) {
-      alert('Gabim në marrjen e pronave');
+      alert("Gabim gjatë ngarkimit të pronave.");
       return;
     }
-    allProperties = data;
-    renderPoints(data);
+    propertyData = data;
+    renderPoints(propertyData);
   }
 
   function renderPoints(data) {
@@ -218,7 +219,7 @@
     const fMin = parseFloat(document.getElementById("filter-min-price").value);
     const sort = document.getElementById("filter-sort").value;
 
-    let filtered = allProperties.filter(p => {
+    let filtered = propertyData.filter(p => {
       return (!fCategory || p.category.toLowerCase().includes(fCategory)) &&
              (!fCity || p.city.toLowerCase().includes(fCity)) &&
              (!fMax || p.price <= fMax) &&
@@ -232,8 +233,6 @@
   }
 
   async function addProperty() {
-    if (!isAdmin) return alert("Vetëm admini mund të shtojë prona");
-
     const category = document.getElementById("new-category").value;
     const city = document.getElementById("new-city").value;
     const price = parseFloat(document.getElementById("new-price").value);
@@ -247,10 +246,10 @@
 
     const { error } = await supabase.from('properties').insert([{ category, city, price, lat, lng }]);
     if (error) {
-      alert("Gabim gjatë shtimit");
+      alert("Gabim gjatë shtimit të pronës.");
     } else {
-      fetchProperties();
       alert("Prona u publikua!");
+      loadProperties();
     }
   }
 
@@ -271,33 +270,34 @@
     applyFilters();
   }
 
-  // Toggles
+  // Admin Login
+  let isAdmin = false;
   document.getElementById('adminToggle').onclick = () => {
-    if (!isAdmin) {
-      document.getElementById('loginPanel').style.display = 'block';
+    if (isAdmin) {
+      const panel = document.getElementById('adminPanel');
+      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
     } else {
-      document.getElementById('adminPanel').style.display = 
-        document.getElementById('adminPanel').style.display === 'block' ? 'none' : 'block';
+      document.getElementById('loginPanel').style.display = 'block';
     }
   };
+
+  function loginAdmin() {
+    const pass = document.getElementById('admin-password').value;
+    if (pass === "123456") {
+      isAdmin = true;
+      document.getElementById('loginPanel').style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
+    } else {
+      alert("Fjalëkalimi i gabuar.");
+    }
+  }
 
   document.getElementById('searchToggle').onclick = () => {
     const panel = document.getElementById('filterPanel');
     panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
   };
 
-  function loginAdmin() {
-    const pass = document.getElementById("adminPass").value;
-    if (pass === "sekret123") {
-      isAdmin = true;
-      document.getElementById("loginPanel").style.display = "none";
-      document.getElementById("adminPanel").style.display = "block";
-    } else {
-      alert("Fjalëkalim i gabuar");
-    }
-  }
-
-  // Orbit buttons
+  // Rregullim i orbit-buttons
   const orbitButtons = document.querySelectorAll('.orbit-button');
   const radius = 170;
   orbitButtons.forEach((btn, i) => {
@@ -308,7 +308,7 @@
     btn.style.top = `${250 + y - 50}px`;
   });
 
-  fetchProperties();
+  loadProperties();
 </script>
 </body>
-                                                                        </html>
+</html>
